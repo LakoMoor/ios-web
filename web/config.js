@@ -27,7 +27,7 @@ export function bootArguments(config, files) {
   const props = [config.machine, 'trustcache=/input/trustcache'];
   if (files.seprom) props.push('sep-rom=/input/seprom','sep-fw=/input/sepfw');
   if (files.ticket) props.push('ticket=/input/ticket');
-  const args = ['-M',props.join(','),'-accel','tcg,thread=single','-m',String(config.memory),'-smp',files.seprom?'2':'1','-display','browser','-serial','stdio','-monitor','none','-nic','none','-snapshot',
+  const args = ['-M',props.join(','),'-accel','tcg,thread=single,tb-size=32','-m',String(config.memory),'-smp',files.seprom?'2':'1','-display','browser','-serial','stdio','-monitor','none','-nic','none','-snapshot',
     '-kernel','/input/kernel','-dtb','/input/dtb','-append',config.bootargs,
     '-drive','if=none,id=system,file=/input/disk,format='+config.format,
     '-device','nvme-ns,drive=system,bus=nvme-bus.0,nsid=1',
@@ -36,7 +36,7 @@ export function bootArguments(config, files) {
   if (files.initrd) args.push('-initrd','/input/initrd');
   return args;
 }
-export const probeArguments = ['-M','virt','-cpu','cortex-a53','-accel','tcg,thread=single','-m','128','-smp','1','-display','browser','-serial','stdio','-monitor','none','-nic','none','-device','loader,file=/probe.bin,addr=0x40080000,cpu-num=0'];
+export function probeArguments(paged=false) { return ['-M','virt','-cpu','cortex-a53','-accel','tcg,thread=single,tb-size=32','-m',paged?'4096':'128','-smp','1','-display','browser','-serial','stdio','-monitor','none','-nic','none','-device','loader,file=/probe.bin,addr='+(paged?'0x100080000':'0x40080000')+',cpu-num=0']; }
 export function pointerPosition(rect, width, height, x, y) {
   const scale = Math.min(rect.width/width, rect.height/height);
   const left = rect.left + (rect.width-width*scale)/2, top = rect.top + (rect.height-height*scale)/2;

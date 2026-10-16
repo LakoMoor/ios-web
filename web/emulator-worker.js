@@ -13,11 +13,11 @@ self.onmessage = async ({data}) => {
       const {default:createInferno} = await import('./runtime/inferno.mjs');
       let probe;
       if (data.mode === 'probe') {
-        const response = await fetch(new URL('./runtime/probe.bin',import.meta.url));
+        const response = await fetch(new URL(data.config.swap?'./runtime/probe-paged.bin':'./runtime/probe.bin',import.meta.url));
         if (!response.ok) throw new Error('ARM64 probe отсутствует: HTTP '+response.status);
         probe = new Uint8Array(await response.arrayBuffer());
       }
-      const args = probe ? [...probeArguments] : bootArguments(data.config,data.files);
+      const args = probe ? probeArguments(data.config.swap) : bootArguments(data.config,data.files);
       send('arguments',{args});
       runtime = await createInferno({
         noInitialRun:true,

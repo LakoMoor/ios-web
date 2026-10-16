@@ -24,6 +24,70 @@ def replace(path, old, new):
 replace('qapi/ui.json', "{ 'name': 'none' },", "{ 'name': 'none' },\n    { 'name': 'browser' },")
 replace('qapi/ui.json', '# @gtk: The GTK user interface.', '# @browser: Web Worker RGBA display for the browser WASM port.\n#\n# @gtk: The GTK user interface.')
 replace('util/oslib-posix.c', '    char *pid_path;\n    size_t len;', '    char *pid_path;\n    gsize len;')
+replace('hw/ssi/apple_spi.c', 'spi->iomem.size == 0', 'int128_eq(spi->iomem.size, int128_zero())')
+replace('hw/usb/dev-tcp-remote.h', '    uint64_t handled;', '    uint32_t handled;')
+replace('include/exec/vaddr.h', '''typedef uintptr_t vaddr;
+#define VADDR_PRId PRIdPTR
+#define VADDR_PRIu PRIuPTR
+#define VADDR_PRIo PRIoPTR
+#define VADDR_PRIx PRIxPTR
+#define VADDR_PRIX PRIXPTR
+#define VADDR_MAX UINTPTR_MAX''', '''#ifdef __EMSCRIPTEN__
+typedef uint64_t vaddr;
+#define VADDR_PRId PRId64
+#define VADDR_PRIu PRIu64
+#define VADDR_PRIo PRIo64
+#define VADDR_PRIx PRIx64
+#define VADDR_PRIX PRIX64
+#define VADDR_MAX UINT64_MAX
+#else
+typedef uintptr_t vaddr;
+#define VADDR_PRId PRIdPTR
+#define VADDR_PRIu PRIuPTR
+#define VADDR_PRIo PRIoPTR
+#define VADDR_PRIx PRIxPTR
+#define VADDR_PRIX PRIXPTR
+#define VADDR_MAX UINTPTR_MAX
+#endif''')
+replace('include/exec/helper-head.h.inc', '#if __SIZEOF_POINTER__ == 4\n# define dh_alias_vaddr i32',
+        '#if defined(__EMSCRIPTEN__)\n# define dh_alias_vaddr i64\n# define dh_typecode_vaddr dh_typecode_i64\n#elif __SIZEOF_POINTER__ == 4\n# define dh_alias_vaddr i32')
+replace('include/exec/helper-head.h.inc', '# define dh_ctype_vaddr uintptr_t',
+        '#ifdef __EMSCRIPTEN__\n# define dh_ctype_vaddr uint64_t\n#else\n# define dh_ctype_vaddr uintptr_t\n#endif')
+replace('include/qemu/atomic.h', '#define ATOMIC_REG_SIZE  sizeof(void *)',
+        '''#if defined(__EMSCRIPTEN__) && defined(__wasm_atomics__)
+_Static_assert(__atomic_always_lock_free(8, 0), "WASM requires native i64 atomics");
+#define ATOMIC_REG_SIZE 8
+#else
+#define ATOMIC_REG_SIZE sizeof(void *)
+#endif''')
+# wasm32 pointers remain 32-bit, but the TCI virtual registers must hold
+# complete ARM64 guest addresses. i64 arithmetic is native to WebAssembly.
+replace('tcg/tci/tcg-target-reg-bits.h', '#if UINTPTR_MAX == UINT32_MAX',
+        '#if defined(__EMSCRIPTEN__)\n# define TCG_TARGET_REG_BITS 64\n#elif UINTPTR_MAX == UINT32_MAX')
+replace('tcg/tci.c', 'func = ((void **)ptr)[0];\n                cif = ((void **)ptr)[1];',
+        'func = (void *)(uintptr_t)((tcg_target_ulong *)ptr)[0];\n                cif = (ffi_cif *)(uintptr_t)((tcg_target_ulong *)ptr)[1];')
+# Inferno removed BFD and its disassembler infrastructure, but left this
+# unused TCI disassembler behind. Keep the interpreter, omit the orphan.
+p = source / 'tcg/tci.c'
+s = p.read_text()
+marker = '/*\n * Disassembler that matches the interpreter\n */'
+if marker in s:
+    p.write_text(s.split(marker, 1)[0])
+replace('include/tcg/tcg.h', '#if __SIZEOF_POINTER__ == 4\ntypedef TCGv_i32 TCGv_vaddr;',
+        '#if defined(__EMSCRIPTEN__)\ntypedef TCGv_i64 TCGv_vaddr;\n#elif __SIZEOF_POINTER__ == 4\ntypedef TCGv_i32 TCGv_vaddr;')
+replace('include/tcg/tcg-op-common.h', 'TCGv_vaddr tcg_constant_vaddr(uintptr_t val);',
+        'TCGv_vaddr tcg_constant_vaddr(uint64_t val);')
+replace('tcg/tcg.c', '''TCGv_vaddr tcg_constant_vaddr(uintptr_t val)
+{
+    return temp_tcgv_vaddr(tcg_constant_internal(TCG_TYPE_PTR, val));
+}''', '''TCGv_vaddr tcg_constant_vaddr(uint64_t val)
+{
+#ifdef __EMSCRIPTEN__
+    return temp_tcgv_vaddr(tcg_constant_internal(TCG_TYPE_I64, val));
+#else
+    return temp_tcgv_vaddr(tcg_constant_internal(TCG_TYPE_PTR, val));
+#endif
+}''')
 replace('ui/meson.build', 'system_ss.add(pixman)', "if host_os == 'emscripten'\n  system_ss.add(files('browser-display.c', 'browser-swap.c'))\nendif\nsystem_ss.add(pixman)")
 shutil.copyfile(project / 'build/browser-display.c', source / 'ui/browser-display.c')
 replace('util/qemu-timer.c', '#include "qemu/osdep.h"', '#include "qemu/osdep.h"\n#ifdef __EMSCRIPTEN__\n#include <emscripten.h>\n#include <emscripten/threading.h>\n#endif')

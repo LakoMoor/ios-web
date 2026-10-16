@@ -8,6 +8,9 @@ if [ ! -x /opt/build-tools/bin/meson ]; then
   /opt/build-tools/bin/pip install meson==1.9.0
 fi
 export PATH=/opt/build-tools/bin:$PATH
+if ! command -v aarch64-linux-gnu-as >/dev/null; then
+  apt-get -o Acquire::https::CaInfo=/run/build-ca.pem install -y binutils-aarch64-linux-gnu
+fi
 export TARGET=/opt/wasm CFLAGS='-O2 -pthread -matomics -mbulk-memory' CXXFLAGS='-O2 -pthread -matomics -mbulk-memory'
 export LDFLAGS='-L/opt/wasm/lib -pthread' CPATH=/opt/wasm/include PKG_CONFIG_LIBDIR=/opt/wasm/lib/pkgconfig EM_PKG_CONFIG_PATH=/opt/wasm/lib/pkgconfig
 mkdir -p /deps

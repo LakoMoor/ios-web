@@ -3,7 +3,7 @@ await mkdir('dist',{recursive:true});
 await cp('web','dist',{recursive:true});
 await writeFile('dist/.nojekyll','');
 if (process.argv.includes('--require-runtime')) {
-  for (const name of ['inferno.mjs','qemu-system-aarch64.wasm','probe.bin','manifest.json']) {
+  for (const name of ['inferno.mjs','qemu-system-aarch64.wasm','probe.bin','probe-paged.bin','manifest.json']) {
     const s=await stat('dist/runtime/'+name);
     if(!s.size)throw new Error('Runtime file is empty: '+name);
   }

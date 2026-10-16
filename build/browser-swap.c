@@ -27,7 +27,8 @@ static uint64_t misses, evictions;
 static uint64_t pinned_begin;
 static size_t pinned_len;
 static uint8_t *pinned_data;
-EM_JS(void, web_swap_prepare, (void), { Module.webSwapMemory = HEAPU8.buffer; });
+EM_JS(void, web_swap_prepare_js, (void), { Module.webSwapMemory = HEAPU8.buffer; });
+EMSCRIPTEN_KEEPALIVE void web_swap_prepare(void) { web_swap_prepare_js(); }
 EMSCRIPTEN_KEEPALIVE uintptr_t web_swap_mailbox(void) { return (uintptr_t)mailbox; }
 EMSCRIPTEN_KEEPALIVE uintptr_t web_swap_buffer(void) { return (uintptr_t)transfer_page; }
 EMSCRIPTEN_KEEPALIVE void web_swap_config(unsigned mb) { budget_mb = mb; }

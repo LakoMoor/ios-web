@@ -38,6 +38,7 @@ try{
  assert.equal(await page.locator('body').getAttribute('data-probe'),'passed','Actual ARM64 guest must print success signature');
  assert.match(await page.locator('#console').textContent(),/INFERNO_WASM_ARM64_OK/);
  assert.match(await page.locator('#console').textContent(),/SWAP_ROUNDTRIP_OK/);
+ assert.match(await page.locator('#console').textContent(),/ARM64_HIGH_ADDRESS_OK/);
  assert.equal(await page.locator('#swap-status').textContent(),'OPFS');
  await page.locator('#pause').click();
  await page.waitForFunction(()=>document.getElementById('pause').textContent.includes('Продолжить'));
@@ -53,6 +54,7 @@ try{
  await page.locator('#probe').click();
  await page.waitForFunction(()=>document.body.dataset.probe==='passed',null,{timeout:60000});
  assert.match(await page.locator('#console').textContent(),/SWAP_ROUNDTRIP_OK/);
+ assert.match(await page.locator('#console').textContent(),/ARM64_HIGH_ADDRESS_OK/);
  assert.equal(await page.locator('#swap-status').textContent(),'INDEXEDDB');
  await page.locator('#stop').click();
  await page.evaluate(()=>delete document.body.dataset.probe);
