@@ -39,6 +39,8 @@ async function start(nextMode) {
   const config=readConfig();
   if(nextMode==='ios'){try{validateConfig(config,selected);}catch(e){error(e.message);return;}}
   $('config-error').hidden=true;frameCount=0;$('frames').textContent='—';$('console').textContent='';
+  delete document.body.dataset.probe;
+  $('swap-status').textContent=config.swap?'Подключение…':'Выключена';
   $('screen').hidden=true;$('screen-empty').hidden=false;$('screen-title').textContent='Загрузка движка…';$('screen-description').textContent='Компиляция WebAssembly может занять некоторое время.';$('screen-badge').textContent=nextMode==='probe'?'ARM64 / ДИАГНОСТИКА':'WEBASSEMBLY / TCI';
   mode=nextMode;active=true;paused=false;startedAt=performance.now();runtimeReady=false;controls();status('Загрузка WebAssembly','active');$('console-state').textContent='/ запуск';
   worker=new Worker(new URL('./emulator-worker.js',import.meta.url),{type:'module'});

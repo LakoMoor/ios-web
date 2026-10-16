@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 cd /project
+git config --global --add safe.directory /project/vendor/inferno
+git config --global --add safe.directory /project/vendor/inferno/util/mlib
 python3 build/patch.py vendor/inferno
 mkdir -p build-output/qemu web/runtime
 cd build-output/qemu
-emconfigure /project/vendor/inferno/configure --cc=emcc --cxx=em++ --ar=emar --ranlib=emranlib --nm=emnm --strip=emstrip \
+export AR=emar RANLIB=emranlib NM=emnm STRIP=emstrip
+emconfigure /project/vendor/inferno/configure --cc=emcc --cxx=em++ \
   --cpu=wasm32 --cross-prefix= --target-list=aarch64-softmmu \
   --without-default-features --without-default-devices --with-devices-aarch64=browser \
   --enable-system --enable-tcg --enable-tcg-interpreter --enable-pixman --enable-png --enable-lzfse --enable-nettle \
-  --enable-fdt --disable-tools --disable-guest-agent --disable-docs --disable-werror --disable-stack-protector \
+  --enable-fdt --disable-tools --disable-guest-agent --disable-werror --disable-stack-protector \
   --with-coroutine=wasm --extra-cflags='-O2 -pthread -matomics -mbulk-memory -Wno-error=incompatible-function-pointer-types -Wno-error=incompatible-pointer-types -I/opt/wasm/include' \
   --extra-ldflags='-L/opt/wasm/lib'
 ninja -j4 qemu-system-aarch64

@@ -14,10 +14,14 @@ mkdir -p /deps
 cp /project/build/dependencies.sh /project/build/cross.ini /deps/
 cd /deps
 for dependency in zlib ffi glib pixman gmp nettle tasn1 lzfse png; do
-  if [ ! -f "/deps/$dependency.done" ]; then
+  stamp="$dependency"
+  if [ "$dependency" = ffi ]; then stamp=ffi-3.4.8; fi
+  if [ ! -f "/deps/$stamp.done" ]; then
     bash /deps/dependencies.sh "$dependency"
-    touch "/deps/$dependency.done"
+    touch "/deps/$stamp.done"
   fi
 done
+git config --global --add safe.directory /project/vendor/inferno
+git config --global --add safe.directory /project/vendor/inferno/util/mlib
 git -C /project/vendor/inferno submodule update --init --depth=1 util/mlib
 bash /project/build/compile.sh

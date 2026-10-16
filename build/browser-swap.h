@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 #ifndef BROWSER_SWAP_H
 #define BROWSER_SWAP_H
-#include "exec/memory.h"
+#include "system/memory.h"
 bool web_swap_enabled(void);
 bool web_swap_is_region(MemoryRegion *mr);
 void web_swap_ram_init(MemoryRegion *mr, Object *owner, uint64_t size);

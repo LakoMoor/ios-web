@@ -22,6 +22,7 @@ try{
  assert.equal(await page.locator('#chip-version').textContent(),'9');
  await page.locator('#machine').selectOption('t8030');
  await page.locator('#memory').fill('2048');
+ await page.locator('#swap-backend').selectOption('opfs');
  await mkdir('artifacts/frames',{recursive:true});
  await page.locator('.lab').scrollIntoViewIfNeeded();
  if(capture) await page.screenshot({path:'artifacts/frames/000.png'});
@@ -36,6 +37,8 @@ try{
  }
  assert.equal(await page.locator('body').getAttribute('data-probe'),'passed','Actual ARM64 guest must print success signature');
  assert.match(await page.locator('#console').textContent(),/INFERNO_WASM_ARM64_OK/);
+ assert.match(await page.locator('#console').textContent(),/SWAP_ROUNDTRIP_OK/);
+ assert.equal(await page.locator('#swap-status').textContent(),'OPFS');
  await page.locator('#pause').click();
  await page.waitForFunction(()=>document.getElementById('pause').textContent.includes('Продолжить'));
  await page.locator('#pause').click();
@@ -46,8 +49,17 @@ try{
  await page.locator('#stop').click();
  assert.equal(await page.locator('#probe').isEnabled(),true);
  await page.evaluate(()=>delete document.body.dataset.probe);
+ await page.locator('#swap-backend').selectOption('indexeddb');
  await page.locator('#probe').click();
  await page.waitForFunction(()=>document.body.dataset.probe==='passed',null,{timeout:60000});
+ assert.match(await page.locator('#console').textContent(),/SWAP_ROUNDTRIP_OK/);
+ assert.equal(await page.locator('#swap-status').textContent(),'INDEXEDDB');
+ await page.locator('#stop').click();
+ await page.evaluate(()=>delete document.body.dataset.probe);
+ await page.locator('#swap').uncheck();
+ await page.locator('#probe').click();
+ await page.waitForFunction(()=>document.body.dataset.probe==='passed',null,{timeout:60000});
+ assert.doesNotMatch(await page.locator('#console').textContent(),/SWAP_ROUNDTRIP_OK/);
  await page.locator('#stop').click();
  const mobile=await context.newPage();
  await mobile.setViewportSize({width:390,height:844});
@@ -56,6 +68,6 @@ try{
  assert(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await mobile.screenshot({path:'artifacts/mobile.png',fullPage:true});
  assert.deepEqual(errors,[]);
- await writeFile('artifacts/browser-result.json',JSON.stringify({url,isolated:true,arm64Probe:'passed',restart:'passed',pause:'passed',mobileWidth:390,pageErrors:errors,console:consoleText,requests},null,2));
+ await writeFile('artifacts/browser-result.json',JSON.stringify({url,isolated:true,arm64Probe:'passed',paging:['opfs','indexeddb','disabled'],restart:'passed',pause:'passed',mobileWidth:390,pageErrors:errors,console:consoleText,requests},null,2));
  console.log('PASS: isolation, actual WASM ARM64 guest, pause/resume, restart, mobile layout.');
 }finally{await browser.close();}

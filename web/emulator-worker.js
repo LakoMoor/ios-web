@@ -57,7 +57,7 @@ self.onmessage = async ({data}) => {
       send('runtime-ready');
       runtime.callMain(args);
     } else if (data.type === 'pointer' && runtime) runtime._web_pointer(data.x,data.y,data.down?1:0);
-    else if (data.type === 'pause' && runtime) {runtime._web_control(data.paused?1:2);send('paused',{paused:data.paused});}
+    else if (data.type === 'pause' && runtime) runtime._web_control(data.paused?1:2);
     else if (data.type === 'shutdown' && runtime) runtime._web_control(3);
   } catch (error) { fail(error); }
 };

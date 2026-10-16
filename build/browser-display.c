@@ -21,8 +21,14 @@ EMSCRIPTEN_KEEPALIVE void web_control(int action) { pending_action = action; }
 
 static void browser_refresh(DisplayChangeListener *dcl)
 {
-    if (pending_action == 1) { vm_stop(RUN_STATE_PAUSED); }
-    if (pending_action == 2) { vm_start(); }
+    if (pending_action == 1) {
+        vm_stop(RUN_STATE_PAUSED);
+        EM_ASM({ postMessage({type: 'paused', paused: true}); });
+    }
+    if (pending_action == 2) {
+        vm_start();
+        EM_ASM({ postMessage({type: 'paused', paused: false}); });
+    }
     if (pending_action == 3) { qemu_system_shutdown_request(SHUTDOWN_CAUSE_HOST_UI); }
     pending_action = 0;
     if (pointer_pending) {
@@ -39,7 +45,8 @@ static void browser_refresh(DisplayChangeListener *dcl)
                             0, 0, 0, 0, 0, 0, w, h);
     uint8_t *data = (uint8_t *)pixman_image_get_data(rgba);
     EM_ASM({
-        const buffer = HEAPU8.slice($0, $0 + $1 * $2 * 4).buffer;
+        const offset = $0 >>> 0;
+        const buffer = HEAPU8.slice(offset, offset + $1 * $2 * 4).buffer;
         postMessage({type: 'frame', width: $1, height: $2, buffer}, [buffer]);
     }, data, w, h);
     dirty = false;

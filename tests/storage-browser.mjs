@@ -1,11 +1,12 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
-import {writeFile} from 'node:fs/promises';
-const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
+import {mkdir,writeFile} from 'node:fs/promises';
+await mkdir('artifacts',{recursive:true});
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
 const page=await browser.newPage({viewport:{width:1280,height:1040}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 try {
- await page.goto('http://127.0.0.1:4173/ios-web/');
+ await page.goto(process.env.TEST_URL||'http://127.0.0.1:4173/ios-web/');
  await page.waitForFunction(()=>crossOriginIsolated&&document.getElementById('check-coi').textContent==='✓ Готово',null,{timeout:30000});
  const results=[];
  for(const backend of ['opfs','indexeddb']){

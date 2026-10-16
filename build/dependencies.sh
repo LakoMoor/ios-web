@@ -13,9 +13,11 @@ popd
 
 }
 build_ffi() {
-git clone https://github.com/libffi/libffi.git ffi
-pushd ffi
-git checkout adbcf2b247696dde2667ab552cb93e0c79455c84
+if [ ! -d ffi-3.4.8/.git ]; then
+  git clone --depth=1 --branch v3.4.8 https://github.com/libffi/libffi.git ffi-3.4.8
+fi
+pushd ffi-3.4.8
+git checkout 6a99edb8082f75e523e0d6ebaba42218b80e10c8
 autoreconf -fiv
 emconfigure ./configure --host=wasm32-unknown-emscripten --prefix="$TARGET" --enable-static --disable-shared --disable-dependency-tracking --disable-builddir --disable-multi-os-directory --disable-raw-api --disable-structs --disable-docs
 emmake make -j4 install SUBDIRS=include
@@ -65,7 +67,7 @@ build_gmp() {
 download https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz gmp.tar.xz
 tar xf gmp.tar.xz
 pushd gmp-6.3.0
-ABI=32 emconfigure ./configure --host=none --prefix="$TARGET" --disable-assembly --disable-shared --enable-static
+ABI=standard emconfigure ./configure --host=none --prefix="$TARGET" --disable-assembly --disable-shared --enable-static
 emmake make -j4 install
 popd
 
