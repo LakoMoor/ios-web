@@ -1,0 +1,11 @@
+/vendor/
+/dist/
+/artifacts/
+/node_modules/
+/build-output/
+*.log
+web/runtime/*
+!web/runtime/.gitkeep
+
+__pycache__/
+*.pyc
