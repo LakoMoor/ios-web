@@ -154,18 +154,22 @@ EMSCRIPTEN_KEEPALIVE int web_swap_selftest(void)
     /* Force several complete cache turnovers, then verify every cold page. */
     unsigned saved_budget = budget_mb;
     budget_mb = 4;
-    cache_init(16 * MiB);
-    for (unsigned page = 0; page < guest_pages; page++) {
+    cache_init(4 * GiB);
+    uint64_t high_marker = UINT64_C(0x13579bdf2468ace0);
+    access_bytes(3 * GiB + 101, &high_marker, 8, true);
+    for (unsigned page = 0; page < 256; page++) {
         uint64_t marker = UINT64_C(0x1234567800000000) | page;
         access_bytes((uint64_t)page * PAGE_SIZE + 101, &marker, 8, true);
     }
     int success = 1;
-    for (unsigned page = 0; page < guest_pages; page++) {
+    for (unsigned page = 0; page < 256; page++) {
         uint64_t value;
         access_bytes((uint64_t)page * PAGE_SIZE + 101, &value, 8, false);
         if (value != (UINT64_C(0x1234567800000000) | page)) success = 0;
     }
     uint64_t crossing = UINT64_C(0x8877665544332211), value;
+    access_bytes(3 * GiB + 101, &value, 8, false);
+    success &= value == high_marker;
     access_bytes(PAGE_SIZE - 3, &crossing, 8, true);
     access_bytes(PAGE_SIZE - 3, &value, 8, false);
     success &= value == crossing;

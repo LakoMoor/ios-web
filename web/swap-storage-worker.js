@@ -3,6 +3,9 @@
 // their shared mailbox. No Atomics.wait is ever executed on the window thread.
 const PAGE=65536;
 let handle,dir,fileName,db,dbName,control,bytes,backend;
+// Compact slots avoid charging several gigabytes of sparse file length when
+// only a few pages near the top of guest RAM have been evicted.
+const pageSlots=new Map();
 const transaction=(mode,run)=>new Promise((resolve,reject)=>{
  const tx=db.transaction('pages',mode);let result;const req=run(tx.objectStore('pages'));
  req.onsuccess=()=>{result=req.result;};tx.oncomplete=()=>resolve(result);
@@ -40,15 +43,15 @@ async function init(data){
   try{
    if(op===1){
     bytes.fill(0);
-    if(handle){const read=handle.read(bytes,{at:page*PAGE});if(read<PAGE)bytes.fill(0,read);}
+    if(handle){const slot=pageSlots.get(page);if(slot!==undefined){const read=handle.read(bytes,{at:slot*PAGE});if(read<PAGE)bytes.fill(0,read);}}
     else{const stored=await transaction('readonly',store=>store.get(page));if(stored)bytes.set(new Uint8Array(stored));}
     Atomics.add(control,3,1);
    }else if(op===2){
-    if(handle){if(handle.write(bytes,{at:page*PAGE})!==PAGE)throw new Error('Short OPFS write');}
+    if(handle){let slot=pageSlots.get(page);if(slot===undefined){slot=pageSlots.size;pageSlots.set(page,slot);}if(handle.write(bytes,{at:slot*PAGE})!==PAGE)throw new Error('Short OPFS write');}
     else await transaction('readwrite',store=>store.put(bytes.slice().buffer,page));
     Atomics.add(control,4,1);
    }else if(op===4){
-    if(handle){handle.truncate(0);handle.flush();}
+    if(handle){handle.truncate(0);handle.flush();pageSlots.clear();}
     else await transaction('readwrite',store=>store.clear());
    }else if(op===3){
     if(handle){handle.flush();handle.close();handle=null;await dir.removeEntry(fileName);}

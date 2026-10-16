@@ -26,6 +26,8 @@ replace('qapi/ui.json', '# @gtk: The GTK user interface.', '# @browser: Web Work
 replace('util/oslib-posix.c', '    char *pid_path;\n    size_t len;', '    char *pid_path;\n    gsize len;')
 replace('hw/ssi/apple_spi.c', 'spi->iomem.size == 0', 'int128_eq(spi->iomem.size, int128_zero())')
 replace('hw/usb/dev-tcp-remote.h', '    uint64_t handled;', '    uint32_t handled;')
+replace('hw/arm/Kconfig', '    select EXYNOS4 # UART',
+        '    select CPU_CLUSTER\n    select EXYNOS4 # UART')
 replace('include/exec/vaddr.h', '''typedef uintptr_t vaddr;
 #define VADDR_PRId PRIdPTR
 #define VADDR_PRIu PRIuPTR
@@ -49,6 +51,8 @@ typedef uintptr_t vaddr;
 #define VADDR_PRIX PRIXPTR
 #define VADDR_MAX UINTPTR_MAX
 #endif''')
+replace('include/exec/cpu-common.h', '#if defined(CONFIG_XEN_BACKEND)',
+        '#if defined(CONFIG_XEN_BACKEND) || defined(__EMSCRIPTEN__)')
 replace('include/exec/helper-head.h.inc', '#if __SIZEOF_POINTER__ == 4\n# define dh_alias_vaddr i32',
         '#if defined(__EMSCRIPTEN__)\n# define dh_alias_vaddr i64\n# define dh_typecode_vaddr dh_typecode_i64\n#elif __SIZEOF_POINTER__ == 4\n# define dh_alias_vaddr i32')
 replace('include/exec/helper-head.h.inc', '# define dh_ctype_vaddr uintptr_t',

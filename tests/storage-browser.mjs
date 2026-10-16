@@ -32,11 +32,20 @@ try {
     await command(2,12);
     await command(1,11);
     for(let i=0;i<bytes.length;i++)if(bytes[i]!==((i*31+17)&255))throw new Error('Page roundtrip mismatch at '+i);
+    await command(2,65535);
+    bytes.fill(0);
+    await command(1,65535);
+    for(let i=0;i<bytes.length;i++)if(bytes[i]!==((i*31+17)&255))throw new Error('High page roundtrip mismatch at '+i);
+    if(meta.backend==='opfs'){
+     const root=await navigator.storage.getDirectory();const dir=await root.getDirectoryHandle('ios-web-swap-v1');
+     let size=0;for await(const [name,file] of dir.entries())if(name.startsWith('session-'))size+=(await file.getFile()).size;
+     if(size!==3*65536)throw new Error('OPFS must compact three pages instead of reserving a sparse 4 GiB file: '+size);
+    }
     await command(4,0);
     await command(1,11);
     if(bytes.some(x=>x!==0))throw new Error('Reset did not clear page');
     await command(3,0);
-    return {backend:meta.backend,zeroFill:true,roundtripBytes:65536,isolatedPages:true,reset:true,close:true};
+    return {backend:meta.backend,zeroFill:true,roundtripBytes:65536,highPage:65535,compact:meta.backend==='opfs',isolatedPages:true,reset:true,close:true};
    }finally{worker.terminate();}
   },backend));
  }

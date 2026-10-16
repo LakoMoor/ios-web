@@ -1,7 +1,7 @@
 import {bootArguments, probeArguments} from './config.js';
 let runtime, started = false;
 let storageWorker;
-const send = (type,fields={}) => postMessage({type,...fields});
+const send = (type,fields={}) => postMessage({...fields,type});
 const fail = error => send('error',{message:error?.message || String(error)});
 self.addEventListener('unhandledrejection', event => {event.preventDefault(); fail(event.reason);});
 self.onmessage = async ({data}) => {
@@ -21,6 +21,7 @@ self.onmessage = async ({data}) => {
       send('arguments',{args});
       runtime = await createInferno({
         noInitialRun:true,
+        mainScriptUrlOrBlob:new URL('./runtime/inferno.mjs',import.meta.url).href,
         locateFile:path => new URL('./runtime/'+path,import.meta.url).href,
         print:text => send('serial',{text:String(text)+'\n'}),
         printErr:text => send('serial',{text:String(text)+'\n',stderr:true}),
