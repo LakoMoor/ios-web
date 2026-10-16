@@ -43,6 +43,16 @@ new = '''size_t in_left = inbytes_left ? *inbytes_left : 0;
 if old not in s:
     raise SystemExit('GLib iconv patch anchor missing')
 p.write_text(s.replace(old, new, 1))
+p = Path('glib-2.75.0/meson.build')
+s = p.read_text()
+# Emscripten is a Clang compiler, but Meson gives it its own compiler ID.
+# Without this test GLib guesses unsigned int from width alone, while the
+# current SDK defines size_t as unsigned long (both are 32 bits).
+s = s.replace("if cc.get_id() == 'gcc' or cc.get_id() == 'clang'",
+              "if cc.get_id() in ['gcc', 'clang', 'emscripten']")
+s = s.replace("args: ['-Werror'],\n        name : 'GCC size_t typedef is '",
+              "args: ['-Werror', '-Werror=incompatible-pointer-types'],\n        name : 'GCC size_t typedef is '")
+p.write_text(s)
 PY
 printf '#include <netdb.h>\nint res_query(const char*n,int c,int t,unsigned char*d,int l){h_errno=HOST_NOT_FOUND;return -1;}\n' > resolv.c
 emcc $CFLAGS -c resolv.c -o resolv.o

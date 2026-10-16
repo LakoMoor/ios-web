@@ -7,6 +7,11 @@ import sys
 source = Path(sys.argv[1])
 project = Path(__file__).resolve().parent.parent
 
+def write(path, content):
+    p = source / path
+    if not p.exists() or p.read_text() != content:
+        p.write_text(content)
+
 def replace(path, old, new):
     p = source / path
     text = p.read_text()
@@ -17,6 +22,8 @@ def replace(path, old, new):
     p.write_text(text.replace(old, new, 1))
 
 replace('qapi/ui.json', "{ 'name': 'none' },", "{ 'name': 'none' },\n    { 'name': 'browser' },")
+replace('qapi/ui.json', '# @gtk: The GTK user interface.', '# @browser: Web Worker RGBA display for the browser WASM port.\n#\n# @gtk: The GTK user interface.')
+replace('util/oslib-posix.c', '    char *pid_path;\n    size_t len;', '    char *pid_path;\n    gsize len;')
 replace('ui/meson.build', 'system_ss.add(pixman)', "if host_os == 'emscripten'\n  system_ss.add(files('browser-display.c', 'browser-swap.c'))\nendif\nsystem_ss.add(pixman)")
 shutil.copyfile(project / 'build/browser-display.c', source / 'ui/browser-display.c')
 replace('util/qemu-timer.c', '#include "qemu/osdep.h"', '#include "qemu/osdep.h"\n#ifdef __EMSCRIPTEN__\n#include <emscripten.h>\n#include <emscripten/threading.h>\n#endif')
@@ -32,12 +39,12 @@ replace('util/qemu-timer.c', 'int qemu_poll_ns(GPollFD *fds, guint nfds, int64_t
 #endif''')
 # The module runs in a dedicated Worker, where WORKERFS has FileReaderSync.
 # Do not proxy its main() to a browser-main pthread (that breaks WORKERFS).
-(source / 'configs/meson/emscripten.txt').write_text('''[built-in options]
+write('configs/meson/emscripten.txt', '''[built-in options]
 c_args = ['-O2', '-pthread', '-matomics', '-mbulk-memory', '-I/opt/wasm/include']
 cpp_args = ['-O2', '-pthread', '-matomics', '-mbulk-memory', '-I/opt/wasm/include']
 c_link_args = ['-O2', '-L/opt/wasm/lib', '-pthread', '-sASYNCIFY=1', '-sASYNCIFY_IMPORTS=ffi_call_js', '-sFORCE_FILESYSTEM=1', '-lworkerfs.js', '-sALLOW_TABLE_GROWTH=1', '-sALLOW_MEMORY_GROWTH=1', '-sINITIAL_MEMORY=268435456', '-sMAXIMUM_MEMORY=4294967296', '-sSTACK_SIZE=2097152', '-sASYNCIFY_STACK_SIZE=1048576', '-sPTHREAD_POOL_SIZE=8', '-sWASM_BIGINT=1', '-sEXPORT_ES6=1', '-sMODULARIZE=1', '-sEXPORT_NAME=createInferno', '-sENVIRONMENT=worker,node', '-sEXPORTED_RUNTIME_METHODS=FS,WORKERFS,callMain']
 ''')
-(source / 'configs/devices/aarch64-softmmu/browser.mak').write_text('CONFIG_ARM_VIRT=y\nCONFIG_APPLE_SOC=y\nCONFIG_NVME_PCI=y\n')
+write('configs/devices/aarch64-softmmu/browser.mak', 'CONFIG_ARM_VIRT=y\nCONFIG_APPLE_SOC=y\nCONFIG_NVME_PCI=y\n')
 shutil.copyfile(project / 'build/browser-swap.c', source / 'ui/browser-swap.c')
 shutil.copyfile(project / 'build/browser-swap.h', source / 'include/system/browser-swap.h')
 replace('ui/meson.build', "system_ss.add(files('browser-display.c'))", "system_ss.add(files('browser-display.c', 'browser-swap.c'))")

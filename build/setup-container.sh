@@ -16,6 +16,7 @@ cd /deps
 for dependency in zlib ffi glib pixman gmp nettle tasn1 lzfse png; do
   stamp="$dependency"
   if [ "$dependency" = ffi ]; then stamp=ffi-3.4.8; fi
+  if [ "$dependency" = glib ]; then stamp=glib-sdk4; fi
   if [ ! -f "/deps/$stamp.done" ]; then
     bash /deps/dependencies.sh "$dependency"
     touch "/deps/$stamp.done"
@@ -24,4 +25,4 @@ done
 git config --global --add safe.directory /project/vendor/inferno
 git config --global --add safe.directory /project/vendor/inferno/util/mlib
 git -C /project/vendor/inferno submodule update --init --depth=1 util/mlib
-bash /project/build/compile.sh
+bash /project/build/compile.sh --resume
