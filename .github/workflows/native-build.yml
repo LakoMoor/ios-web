@@ -1,0 +1,50 @@
+name: Rebuild Inferno from source
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'build/**'
+      - 'scripts/prepare-source.sh'
+      - 'scripts/make-probe.py'
+      - 'scripts/runtime-manifest.py'
+      - '.github/workflows/native-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-build
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: bash scripts/prepare-source.sh
+      - name: Build dependencies
+        run: docker build --secret id=ca,src=/etc/ssl/certs/ca-certificates.crt -t ios-web-builder -f build/Dockerfile .
+      - name: Compile Inferno to WebAssembly
+        run: docker run --rm -v "$PWD:/project" -v /etc/ssl/certs/ca-certificates.crt:/run/build-ca.pem:ro ios-web-builder bash build/compile.sh
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/config.test.mjs
+      - run: node scripts/build.mjs --require-runtime
+      - name: Verify project Pages without server isolation headers
+        run: |
+          python3 scripts/serve.py --pages > /tmp/ios-web-server.log 2>&1 &
+          export CHROMIUM_PATH="$(node --input-type=module -e "import {chromium} from 'playwright'; console.log(chromium.executablePath())")"
+          node tests/storage-browser.mjs
+          node tests/browser.mjs --capture
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-verification
+          path: artifacts/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rebuilt-site
+          path: dist/

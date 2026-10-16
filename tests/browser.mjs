@@ -1,6 +1,6 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,rm,writeFile} from 'node:fs/promises';
 const url=process.env.TEST_URL||'http://127.0.0.1:4173/ios-web/';
 const capture=process.argv.includes('--capture');
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -23,6 +23,7 @@ try{
  await page.locator('#machine').selectOption('t8030');
  await page.locator('#memory').fill('2048');
  await page.locator('#swap-backend').selectOption('opfs');
+ if(capture)await rm('artifacts/frames',{recursive:true,force:true});
  await mkdir('artifacts/frames',{recursive:true});
  await page.locator('.lab').scrollIntoViewIfNeeded();
  if(capture) await page.screenshot({path:'artifacts/frames/000.png'});

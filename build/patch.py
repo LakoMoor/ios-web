@@ -28,6 +28,8 @@ replace('hw/ssi/apple_spi.c', 'spi->iomem.size == 0', 'int128_eq(spi->iomem.size
 replace('hw/usb/dev-tcp-remote.h', '    uint64_t handled;', '    uint32_t handled;')
 replace('hw/arm/Kconfig', '    select EXYNOS4 # UART',
         '    select CPU_CLUSTER\n    select EXYNOS4 # UART')
+replace('hw/arm/Kconfig', '    select CPU_CLUSTER\n    select EXYNOS4 # UART',
+        '    select PCIE_PORT\n    select CPU_CLUSTER\n    select EXYNOS4 # UART')
 replace('include/exec/vaddr.h', '''typedef uintptr_t vaddr;
 #define VADDR_PRId PRIdPTR
 #define VADDR_PRIu PRIuPTR

@@ -49,11 +49,41 @@ try {
    }finally{worker.terminate();}
   },backend));
  }
+ const lifecycle=await page.evaluate(async()=>{
+  const sessions=[];
+  const names=async()=>(await indexedDB.databases()).filter(x=>x.name?.startsWith('ios-web-swap-'));
+  async function spawn(){
+   const memory=new SharedArrayBuffer(65536+32),control=new Int32Array(memory,0,8);
+   const worker=new Worker(new URL('./swap-storage-worker.js',location.href),{type:'module'});
+   sessions.push(worker);
+   await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('Concurrent IndexedDB session initialization timed out')),10000);
+    worker.onmessage=({data})=>{if(data.type==='ready'){clearTimeout(timer);resolve();}else if(data.type==='error'){clearTimeout(timer);reject(new Error(data.message));}};
+    worker.onerror=e=>{clearTimeout(timer);reject(new Error(e.message));};
+    worker.postMessage({type:'init',memory,control:0,data:32,backend:'indexeddb'});
+   });
+   return {worker,control};
+  }
+  async function count(expected){
+   const deadline=performance.now()+10000;
+   while((await names()).length!==expected){if(performance.now()>deadline)throw new Error('Unexpected swap database count: '+(await names()).length+'; expected '+expected);await new Promise(r=>setTimeout(r,10));}
+  }
+  try{
+   const a=await spawn(),b=await spawn();await count(2);
+   a.worker.terminate();
+   const c=await spawn();await count(2);
+   b.worker.terminate();c.worker.terminate();
+   const d=await spawn();await count(1);
+   Atomics.store(d.control,0,3);Atomics.notify(d.control,0);
+   await count(0);
+   return {liveSessionsPreserved:true,terminatedSessionsReclaimed:true,explicitCloseDeleted:true};
+  }finally{for(const worker of sessions)worker.terminate();}
+ });
  await page.screenshot({path:'artifacts/interface.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  await page.screenshot({path:'artifacts/mobile.png',fullPage:true});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  assert.deepEqual(errors,[]);
- await writeFile('artifacts/storage-result.json',JSON.stringify({isolation:'service worker / no host headers',projectPath:'/ios-web/',results,pageErrors:errors},null,2));
+ await writeFile('artifacts/storage-result.json',JSON.stringify({isolation:'service worker / no host headers',projectPath:'/ios-web/',results,lifecycle,pageErrors:errors},null,2));
  console.log(JSON.stringify(results));
 }finally{await browser.close();}

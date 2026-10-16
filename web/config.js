@@ -36,7 +36,7 @@ export function bootArguments(config, files) {
   if (files.initrd) args.push('-initrd','/input/initrd');
   return args;
 }
-export function probeArguments(paged=false) { return ['-M','virt','-cpu','cortex-a53','-accel','tcg,thread=single,tb-size=32','-m',paged?'4096':'128','-smp','1','-display','browser','-serial','stdio','-monitor','none','-nic','none','-device','loader,file=/probe.bin,addr='+(paged?'0x100080000':'0x40080000')+',cpu-num=0']; }
+export function probeArguments(paged=false) { return ['-nodefaults','-M','virt','-cpu','cortex-a53','-accel','tcg,thread=single,tb-size=32','-m',paged?'4096':'128','-smp','1','-display','browser','-serial','stdio','-monitor','none','-nic','none','-kernel','/probe.elf']; }
 export function pointerPosition(rect, width, height, x, y) {
   const scale = Math.min(rect.width/width, rect.height/height);
   const left = rect.left + (rect.width-width*scale)/2, top = rect.top + (rect.height-height*scale)/2;

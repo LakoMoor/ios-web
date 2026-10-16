@@ -4,8 +4,7 @@
 /node_modules/
 /build-output/
 *.log
-web/runtime/*
-!web/runtime/.gitkeep
+web/runtime/.manifest.tmp
 
 __pycache__/
 *.pyc

@@ -1,0 +1,30 @@
+{
+  "upstream": "ChefKissInc/Inferno",
+  "commit": "cc4302a99167abec69b714cfd00c38caece7e7de",
+  "files": {
+    "probe.bin": {
+      "bytes": 261,
+      "sha256": "9459d4a042594176608ca1be32daad3574703d09353493ba9a414121e1017cdc"
+    },
+    "probe-paged.elf": {
+      "bytes": 4413,
+      "sha256": "cd5c8c20982764740e8cb87fa53aa110d8c1f0fe58b6c18a56cbe1aef99e37c1"
+    },
+    "probe-paged.bin": {
+      "bytes": 317,
+      "sha256": "6a86e98f4530265034b442a5313e3895fd34e2fb6b470ed1f4ee74c2d53aaee6"
+    },
+    "qemu-system-aarch64.wasm": {
+      "bytes": 15889745,
+      "sha256": "f5ef81aae09ed66017b50b51a71635b372eb0b1d36b5940777991f17463dd2de"
+    },
+    "inferno.mjs": {
+      "bytes": 153916,
+      "sha256": "fcc9e5715eaa184d0d8ac8803fd86db76a39262f566cd53e9c3717b6f21c6fb4"
+    },
+    "probe.elf": {
+      "bytes": 4357,
+      "sha256": "fd78c2e82a007cf733e49ea4963fa5af770843efbe2aa6da67190686717194d6"
+    }
+  }
+}

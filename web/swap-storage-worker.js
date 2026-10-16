@@ -3,9 +3,14 @@
 // their shared mailbox. No Atomics.wait is ever executed on the window thread.
 const PAGE=65536;
 let handle,dir,fileName,db,dbName,control,bytes,backend;
+let releaseSessionLock;
 // Compact slots avoid charging several gigabytes of sparse file length when
 // only a few pages near the top of guest RAM have been evicted.
 const pageSlots=new Map();
+const deleteDatabase=name=>new Promise((resolve,reject)=>{
+ const req=indexedDB.deleteDatabase(name);
+ req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);req.onblocked=()=>resolve();
+});
 const transaction=(mode,run)=>new Promise((resolve,reject)=>{
  const tx=db.transaction('pages',mode);let result;const req=run(tx.objectStore('pages'));
  req.onsuccess=()=>{result=req.result;};tx.oncomplete=()=>resolve(result);
@@ -27,6 +32,16 @@ async function init(data){
  }
  if(!handle){
   dbName='ios-web-swap-'+session;
+  if(navigator.locks&&indexedDB.databases){
+   for(const {name} of await indexedDB.databases())if(name?.startsWith('ios-web-swap-')){
+    await navigator.locks.request(name,{ifAvailable:true},async lock=>{if(lock)await deleteDatabase(name);});
+   }
+   // Locks are released by the browser when a worker terminates. The next
+   // session can then reclaim its database without touching live sessions.
+   await new Promise((resolve,reject)=>{
+    navigator.locks.request(dbName,async()=>{resolve();await new Promise(r=>{releaseSessionLock=r;});}).catch(reject);
+   });
+  }
   db=await new Promise((resolve,reject)=>{const req=indexedDB.open(dbName,1);req.onupgradeneeded=()=>req.result.createObjectStore('pages');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
   backend='indexeddb';
  }
@@ -55,7 +70,7 @@ async function init(data){
     else await transaction('readwrite',store=>store.clear());
    }else if(op===3){
     if(handle){handle.flush();handle.close();handle=null;await dir.removeEntry(fileName);}
-    if(db){db.close();indexedDB.deleteDatabase(dbName);db=null;}
+    if(db){db.close();await deleteDatabase(dbName);db=null;releaseSessionLock?.();}
    }else throw new Error('Invalid swap operation');
    Atomics.store(control,2,0);
   }catch(error){

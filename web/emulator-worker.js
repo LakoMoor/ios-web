@@ -13,7 +13,7 @@ self.onmessage = async ({data}) => {
       const {default:createInferno} = await import('./runtime/inferno.mjs');
       let probe;
       if (data.mode === 'probe') {
-        const response = await fetch(new URL(data.config.swap?'./runtime/probe-paged.bin':'./runtime/probe.bin',import.meta.url));
+        const response = await fetch(new URL(data.config.swap?'./runtime/probe-paged.elf':'./runtime/probe.elf',import.meta.url));
         if (!response.ok) throw new Error('ARM64 probe отсутствует: HTTP '+response.status);
         probe = new Uint8Array(await response.arrayBuffer());
       }
@@ -30,7 +30,7 @@ self.onmessage = async ({data}) => {
         preRun:[module => {
           const FS = module.FS;
           FS.mkdir('/input');
-          if (probe) FS.writeFile('/probe.bin',probe);
+          if (probe) FS.writeFile('/probe.elf',probe);
           else {
             const files = Object.entries(data.files).map(([name,file]) => new File([file],name,{lastModified:file.lastModified}));
             FS.mount(module.WORKERFS,{files},'/input');
@@ -56,7 +56,8 @@ self.onmessage = async ({data}) => {
         }
       }
       send('runtime-ready');
-      runtime.callMain(args);
+      const exitCode=runtime.callMain(args);
+      if(Number.isInteger(exitCode)&&exitCode!==0)throw new Error('Inferno завершился с кодом '+exitCode);
     } else if (data.type === 'pointer' && runtime) runtime._web_pointer(data.x,data.y,data.down?1:0);
     else if (data.type === 'pause' && runtime) runtime._web_control(data.paused?1:2);
     else if (data.type === 'shutdown' && runtime) runtime._web_control(3);
