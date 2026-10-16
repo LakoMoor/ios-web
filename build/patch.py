@@ -108,7 +108,12 @@ c_args = ['-O2', '-pthread', '-matomics', '-mbulk-memory', '-I/opt/wasm/include'
 cpp_args = ['-O2', '-pthread', '-matomics', '-mbulk-memory', '-I/opt/wasm/include']
 c_link_args = ['-O2', '-L/opt/wasm/lib', '-pthread', '-sASYNCIFY=1', '-sASYNCIFY_IMPORTS=ffi_call_js', '-sFORCE_FILESYSTEM=1', '-lworkerfs.js', '-sALLOW_TABLE_GROWTH=1', '-sALLOW_MEMORY_GROWTH=1', '-sINITIAL_MEMORY=268435456', '-sMAXIMUM_MEMORY=4294967296', '-sSTACK_SIZE=2097152', '-sASYNCIFY_STACK_SIZE=1048576', '-sPTHREAD_POOL_SIZE=8', '-sWASM_BIGINT=1', '-sEXPORT_ES6=1', '-sMODULARIZE=1', '-sEXPORT_NAME=createInferno', '-sENVIRONMENT=worker,node', '-sEXPORTED_RUNTIME_METHODS=FS,WORKERFS,callMain']
 ''')
-write('configs/devices/aarch64-softmmu/browser.mak', 'CONFIG_ARM_VIRT=y\nCONFIG_APPLE_SOC=y\nCONFIG_NVME_PCI=y\n')
+write('configs/devices/aarch64-softmmu/browser.mak', 'CONFIG_ARM_VIRT=y\nCONFIG_APPLE_SOC=y\nCONFIG_NVME_PCI=y\nCONFIG_FRAMEBUFFER=y\nCONFIG_AT24C=y\nCONFIG_SPDM_SOCKET=y\n')
+replace('hw/arm/apple-silicon/meson.build',
+        "arm_common_ss.add(when: 'CONFIG_APPLE_SOC', if_true: tasn1)",
+        "arm_common_ss.add(when: 'CONFIG_APPLE_SOC', if_true: [tasn1, liblzfse])")
+replace('hw/cxl/cxl-host-stubs.c', 'void cxl_fmws_link_targets(Error **errp) {};',
+        'GSList *cxl_fmws_get_all_sorted(void) { return NULL; }\nvoid cxl_fmws_link_targets(Error **errp) {};')
 shutil.copyfile(project / 'build/browser-swap.c', source / 'ui/browser-swap.c')
 shutil.copyfile(project / 'build/browser-swap.h', source / 'include/system/browser-swap.h')
 replace('ui/meson.build', "system_ss.add(files('browser-display.c'))", "system_ss.add(files('browser-display.c', 'browser-swap.c'))")
@@ -152,6 +157,8 @@ replace('meson.build',
         "if host_long_bits < config_target['TARGET_LONG_BITS'].to_int()",
         "if host_long_bits < config_target['TARGET_LONG_BITS'].to_int() and \\\n        not (host_os == 'emscripten' and sym == 'CONFIG_TCG')")
 replace('hw/core/loader.c', '#include "qemu/osdep.h"', '#include "qemu/osdep.h"\n#ifdef __EMSCRIPTEN__\n#include "system/browser-swap.h"\n#endif')
+replace('meson.build', "  link_args += ['@block.syms', '@qemu.syms']",
+        "  if host_os != 'emscripten'\n    link_args += ['@block.syms', '@qemu.syms']\n  endif")
 replace('hw/core/loader.c', '''            address_space_write_rom(rom->as, rom->addr, MEMTXATTRS_UNSPECIFIED,
                                     rom->data, rom->datasize);''', '''#ifdef __EMSCRIPTEN__
             MemoryRegionSection section = memory_region_find(
